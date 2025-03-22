@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMI Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* BMI Form Styling */
+
+
+input, select {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+.result {
+    margin-top: 20px;
+    font-size: 18px;
+}
+
+label {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+}
+
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+    <div class="container">
+      <h1 class="logo">FooDie</h1>
+      <nav>
+        <ul>
+          <li><a href="intro.html">Home</a></li>
+          <!-- <li><a href="#">About Us</a></li> -->
+          <li><a href="bmi.html">BMI Calculator</a></li>
+          <li><a href="recipe.html">Recipes</a></li>
+          <!-- <li><a href="#">Contact Us</a></li> -->
+        </ul>
+      </nav>
+    </div>
+    <div class="container user-profile">
+      <img src="profile-icon.png" alt="Profile Icon" class="profile-icon">
+      <span class="profile-name" id="profileName"></span>
+      <button class="btn-logout" style="width: auto;" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+<!-- BMI Calculator Form -->
+<div class="container">
+    <h2 class="section-title">BMI Calculator</h2>
+    <form id="bmiForm">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" disabled required>
+
+        <label for="age">Age:</label>
+        <input type="number" id="age" name="age" required>
+
+        <label for="sex">Sex:</label>
+        <select id="sex" name="sex">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+        </select>
+
+        <label for="height">Height (cm):</label>
+        <input type="number" id="height" name="height" required>
+
+        <label for="weight">Weight (kg):</label>
+        <input type="number" id="weight" name="weight" required>
+
+        <button type="submit">Calculate BMI</button>
+    </form>
+    <div id="lastBMI" style="margin-top: 20px; font-size: 16px; color: #555;"></div>
+    <div class="result" id="result"></div>
+    <div id="dietAdvice"></div>
+    <div id="recipes" class="recipe-container"></div>
+    <div id="loader" class="loader" style="display:none;"></div>
+
+    <!-- Nutrition Chart -->
+    <canvas id="nutritionChart" width="400" height="200"></canvas>
+
+   
+</div>
+
+<script>
+
+const token = localStorage.getItem("token");
+    if (!token) {
+      window.location.href = "login.html";
+    }
+
+    const name = localStorage.getItem("name") || "John Doe";
+    document.getElementById("name").value = name;
+
+    // Fetch the last BMI of the user from the database and display it
+    fetchLastBMI();
+    document.addEventListener("DOMContentLoaded", function () {
+      document.getElementById("profileName").textContent = name;
+      loadSavedRecipes(); // Load saved recipes on page load
+    });
+    document.getElementById("bmiForm").addEventListener("submit", function(event) {
+        event.preventDefault();
+
+        // Get input values
+    const name = document.getElementById("name").value;
+    const height = parseFloat(document.getElementById("height").value);
+    const weight = parseFloat(document.getElementById("weight").value);
+
+    // Send BMI calculation request to the backend
+    fetch('http://localhost:8000/bmi/bmi', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+            height: height,
+            weight: weight
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Display the result
+        if (data.error) {
+            document.getElementById("result").innerHTML = `Error: ${data.error}`;
+        } else {
+            const { bmi, category } = data;
+
+            // Display BMI and Category
+            document.getElementById("result").innerHTML = `${name}, your BMI is ${bmi} (${category})`;
+
+        // Fetch recipes based on BMI category
+        fetchRecipesByBMI(category);
+
+        displayDietAdvice(category);
+    }
+    })
+    .catch(error => {
+        console.error("Error fetching BMI data:", error);
+        document.getElementById("result").innerHTML = "An error occurred while calculating your BMI.";
+    });
+    });
+
+    function fetchRecipesByBMI(bmiCategory) {
+    const token = localStorage.getItem("token");
+    document.getElementById("loader").style.display = "block";
+
+    fetch(`http://localhost:8000/bmi/bmi_recipes?category=${bmiCategory}`, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/json",
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Fetched data:", data);
+
+        let recipesContent = "";
+
+        if (Array.isArray(data.recipes)) {
+            data.recipes.forEach(recipe => {
+                // Render recipe cards
+                recipesContent += `
+                    <div class="recipe-card" id="recipe-${recipe.id}">
+                        <img src="${recipe.image}" alt="${recipe.title}">
+                        <h3>${recipe.title}</h3>
+                        <p><strong>Likes:</strong> ${recipe.likes}</p>
+                        <button onclick="showNutritionChart(${recipe.id})">See Nutrition Chart</button>
+                        <button onclick="saveRecipe(${recipe.id}, '${recipe.title}', '${recipe.image}', '${recipe.used_ingredients}', '${recipe.missed_ingredients}', ${recipe.likes})">Save Recipe</button>
+                         <!-- Canvas for displaying the nutrition chart -->
+                        <canvas id="nutritionChart-${recipe.id}" width="400" height="200" style="display:none;"></canvas>
+                    </div>
+                `;
+            });
+        } else {
+            recipesContent = "<p>No recipes found.</p>";
+        }
+
+        document.getElementById("recipes").innerHTML = recipesContent;
+        document.getElementById("loader").style.display = "none";
+    })
+    .catch(error => {
+        console.error("Error fetching recipes:", error);
+        document.getElementById("recipes").innerHTML = "<p>Error fetching recipes.</p>";
+    });
+}
+
+// Fetch and display the nutrition chart for a specific recipe
+function showNutritionChart(recipeId) {
+    const token = localStorage.getItem("token");
+    document.getElementById("loader").style.display = "block";
+    fetch(`http://localhost:8000/bmi/recipe_nutrition/${recipeId}`, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/json",
+        }
+    })
+    .then(response => response.json())
+    .then(nutritionData => {
+        console.log("Fetched nutrition data:", nutritionData.nutrients);
+        // Check if nutrition data is available
+        if (nutritionData && nutritionData.nutrients) {
+            const nutrients = nutritionData.nutrients;
+
+            // Find relevant nutrients
+            const nutritionValues = {
+                calories: 0,
+                protein: 0,
+                fat: 0,
+                carbs: 0,
+            };
+
+            nutrients.forEach(nutrient => {
+                if (nutrient.name === "Calories") nutritionValues.calories = nutrient.amount;
+                if (nutrient.name === "Protein") nutritionValues.protein = nutrient.amount;
+                if (nutrient.name === "Fat") nutritionValues.fat = nutrient.amount;
+                if (nutrient.name === "Carbohydrates") nutritionValues.carbs = nutrient.amount;
+            });
+            document.getElementById("loader").style.display = "none";
+            // Display nutrition chart
+            displayNutritionChart(nutritionValues, recipeId);
+        }
+    })
+    .catch(error => {
+        console.error("Error fetching nutrition data:", error);
+    });
+}
+
+// Display a nutrition chart (pie chart)
+function displayNutritionChart(nutritionValues, recipeId) {
+    const canvasId = `nutritionChart-${recipeId}`;
+    const ctx = document.getElementById(canvasId).getContext('2d');
+
+    // Remove any existing chart
+    const existingChart = Chart.getChart(canvasId);
+    if (existingChart) {
+        existingChart.destroy();
+    }
+    document.getElementById(canvasId).style.display = "block";
+    // Create the pie chart
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Calories', 'Protein', 'Fat', 'Carbs'],
+            datasets: [{
+                label: 'Nutrition Breakdown',
+                data: [nutritionValues.calories, nutritionValues.protein, nutritionValues.fat, nutritionValues.carbs],
+                backgroundColor: ['#ff9999', '#66b3ff', '#99ff99', '#ffcc99'],
+                borderColor: '#fff',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true
+        }
+    });
+}
+
+function displayDietAdvice(bmiCategory) {
+    let advice = "";
+    switch(bmiCategory) {
+        case "Underweight":
+            advice = "To gain weight, try increasing your calorie intake with high-calorie, nutrient-dense foods.";
+            break;
+        case "Normal weight":
+            advice = "Great job! Maintain a balanced diet and stay active to keep your weight in a healthy range.";
+            break;
+        case "Overweight":
+            advice = "Consider reducing your calorie intake and focusing on nutrient-rich, low-calorie foods.";
+            break;
+        case "Obesity":
+            advice = "Consult with a healthcare provider to develop a safe weight-loss plan. Focus on a calorie deficit.";
+            break;
+        default:
+            advice = "Please consult a health professional for personalized advice.";
+            break;
+    }
+
+    document.getElementById("dietAdvice").innerHTML = `<p><strong>Dietary Advice:</strong> ${advice}</p>`;
+}
+
+
+function saveRecipe(id, title, image, usedIngredients, missedIngredients, likes) {
+    const token = localStorage.getItem("token");
+    document.getElementById("loader").style.display = "block";
+
+    // Ensure likes, used_ingredients, and missed_ingredients are set, even if undefined
+    usedIngredients = usedIngredients || "Not available";  // Default value if undefined
+    missedIngredients = missedIngredients || "Not available";  // Default value if undefined
+    likes = likes || 0;  // Default to 0 if likes are not available
+
+    fetch("http://localhost:8000/recipes/save_recipe", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            title: title,
+            image: image,
+            used_ingredients: usedIngredients,
+            missed_ingredients: missedIngredients,
+            likes: likes,
+            spoonacular_id: id,  // Store the recipe's ID
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert("Recipe saved successfully");
+        document.getElementById("loader").style.display = "none";
+    })
+    .catch(error => {
+        console.error("Error saving recipe:", error);
+    });
+}
+function fetchLastBMI() {
+        const token = localStorage.getItem("token");
+
+        fetch('http://localhost:8000/bmi/last_bmi', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.bmi) {
+                // Display the last BMI result
+                document.getElementById("lastBMI").innerHTML = `Last BMI: ${data.bmi} (${data.category})`;
+            } else {
+                document.getElementById("lastBMI").innerHTML = "No previous BMI recorded.";
+            }
+        })
+        .catch(error => {
+            console.error("Error fetching last BMI:", error);
+            document.getElementById("lastBMI").innerHTML = "Error fetching last BMI.";
+        });
+    }
+
+</script>
+
+</body>
+</html>

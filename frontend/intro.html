@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FooDie Website</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="intro-page">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container-intro">
+      <h1 class="logo">FooDie</h1>
+      <nav>
+        <ul>
+          <li><a href="intro.html">Home</a></li>
+          <!-- <li><a href="#">About Us</a></li> -->
+          <li><a href="bmi.html">Bmi Calculator</a></li>
+          <li><a href="recipe.html">Recipes</a></li>
+          <!-- <li><a href="#">Contact Us</a></li> -->
+        </ul>
+      </nav>
+    </div>
+    <div class="container user-profile">
+      <img src="profile-icon.png" alt="Profile Icon" class="profile-icon">
+      <span class="profile-name" id="profileName"></span>
+      <button class="btn-logout" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <h1>Cook Smart, Eat Healthy <span class="highlight">Every Day</span></h1>
+      <p>From quick and easy meals to gourmet delights, we have something for every taste and occasion.</p>
+      <div class="button-group">
+        <a href="bmi.html" class="btn-primary">BMI Calculator</a>
+        <a href="recipe.html" class="btn-primary">Explore Recipes</a>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // Check if the user has a valid JWT token stored in localStorage
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      window.location.href = "login.html";
+    }
+
+    const name = localStorage.getItem("name") || "John Doe";
+    document.addEventListener("DOMContentLoaded", function () {
+      document.getElementById("profileName").textContent = name;
+    });
+
+    async function logout() {
+      try {
+        const response = await fetch('http://localhost:8000/auth/logout', { method: 'POST', credentials: 'include' });
+        if (!response.ok) throw new Error('Logout failed');
+
+        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
+        window.location.href = "login.html";
+      } catch (error) {
+        console.error(error);
+        alert('Error logging out.');
+      }
+    }
+  </script>
+
+</body>
+</html>

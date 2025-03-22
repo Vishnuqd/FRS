@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FooDie - Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('logo.jpg');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-container {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+            width: 350px;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo h1 {
+            color: #2e7d32;
+            font-size: 24px;
+            margin: 0;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #2e7d32;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .login-btn:hover {
+            background-color: #1b5e20;
+        }
+        .signup-link {
+            text-align: center;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <h1>FooDie</h1>
+        </div>
+        <form id="loginForm">
+            <input 
+                type="email" 
+                id="email" 
+                placeholder="Email" 
+                required 
+                pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+            >
+            <input 
+                type="password" 
+                id="password" 
+                placeholder="Password" 
+                required 
+                minlength="8"
+            >
+            <button type="submit" class="login-btn">Login</button>
+        </form>
+        <div class="signup-link">
+            <a href="index.html" style="color: #2e7d32;">Create an account</a>
+        </div>
+    </div>
+
+    <script>
+   document.getElementById("loginForm")?.addEventListener("submit", function(event) {
+    event.preventDefault();
+
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    fetch("http://localhost:8000/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email, password: password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.access_token) {
+            localStorage.setItem("token", data.access_token);
+            localStorage.setItem("name", data.name);
+            // Store username if available in response, else fallback to email
+            if (data.username) {
+                localStorage.setItem("username", data.username);
+            } else {
+                localStorage.setItem("username", email); // Use email as username if not provided
+            }
+
+            console.log("Stored username:", localStorage.getItem("username")); // Debugging
+            window.location.href = "intro.html"; // Redirect to intro page
+        } else {
+            alert("Login failed.");
+        }
+    })
+    .catch(error => console.error("Login error:", error));
+});
+
+        </script>
+        
+</body>
+</html>

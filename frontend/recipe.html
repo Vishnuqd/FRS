@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Healthy Recipe Generator</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <h1 class="logo">FooDie</h1>
+      <nav>
+        <ul>
+          <li><a href="intro.html">Home</a></li>
+          <!-- <li><a href="#">About Us</a></li> -->
+          <li><a href="bmi.html">BMI Calculator</a></li>
+          <li><a href="recipe.html">Recipes</a></li>
+          <!-- <li><a href="#">Contact Us</a></li> -->
+        </ul>
+      </nav>
+    </div>
+    <div class="container user-profile">
+      <img src="profile-icon.png" alt="Profile Icon" class="profile-icon">
+      <span class="profile-name" id="profileName"></span>
+      <button class="btn-logout" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- Recipe Generator Section -->
+  <div class="container">
+    <h2 class="section-title">What's in your fridge!</h2>
+    <div class="recipe-form-container">
+      <!-- Form Section for Entering Ingredients -->
+      <form id="recipeForm" class="recipe-form">
+        <label for="ingredients">Enter Ingredients (comma separated):</label>
+        <input type="text" id="ingredients" name="ingredients" required placeholder="e.g., tomato, cheese, garlic">
+        <button type="submit" class="btn-primary">Generate Recipe</button>
+      </form>
+
+      <!-- Saved Recipes List (with scrolling) -->
+      <div class="saved-recipes-container">
+        <h3>Saved Recipes</h3>
+        <div class="saved-recipes-list" id="savedRecipesList"></div>
+        <button id="loadAllSavedRecipes" class="btn-primary">See All Saved Recipes</button>
+      </div>
+    </div>
+
+    <div class="result" id="result"></div>
+    <div class="recipe-container" id="recipe"></div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) {
+      window.location.href = "login.html";
+    }
+
+    const name = localStorage.getItem("name") || "John Doe";
+    document.addEventListener("DOMContentLoaded", function () {
+      document.getElementById("profileName").textContent = name;
+      loadSavedRecipes(); // Load saved recipes on page load
+    });
+
+    document.getElementById("recipeForm").addEventListener("submit", function(event) {
+      event.preventDefault();
+      
+      const ingredients = document.getElementById("ingredients").value;
+      const token = localStorage.getItem("token");
+
+      fetch(`http://localhost:8000/recipes/by_ingredients?ingredients=${encodeURIComponent(ingredients)}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.recipes && data.recipes.length > 0) {
+          let recipeContent = "";
+          data.recipes.forEach(recipe => {
+            let usedIngredients = recipe.usedIngredients.map(i => `${i.amount} ${i.unit} ${i.name}`).join(', ');
+            let missedIngredients = recipe.missedIngredients.map(i => `${i.amount} ${i.unit} ${i.name}`).join(', ');
+
+            recipeContent += `
+              <div class="recipe-card" data-recipe-id="${recipe.id}">
+                <img src="${recipe.image}" alt="${recipe.title}">
+                <h3>${recipe.title}</h3>
+                <p><strong>Used Ingredients:</strong> ${usedIngredients}</p>
+                <p><strong>Missing Ingredients:</strong> ${missedIngredients}</p>
+                <p><strong>Likes:</strong> ${recipe.likes}</p>
+                <button class="btn-primary" onclick="saveRecipe(${recipe.id}, '${recipe.title}', '${recipe.image}', '${usedIngredients}', '${missedIngredients}', ${recipe.likes})">Save Recipe</button>
+              </div>
+            `;
+          });
+
+          document.getElementById("recipe").innerHTML = recipeContent;
+        } else {
+          document.getElementById("recipe").innerHTML = "<p>No recipes found.</p>";
+        }
+      })
+      .catch(error => {
+        console.error("Error fetching recipes:", error);
+        document.getElementById("recipe").innerHTML = "<p>Error fetching recipes.</p>";
+      });
+    });
+
+    function saveRecipe(id, title, image, usedIngredients, missedIngredients, likes) {
+      const token = localStorage.getItem("token");
+
+      fetch("http://localhost:8000/recipes/save_recipe", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title,
+          image,
+          used_ingredients: usedIngredients,
+          missed_ingredients: missedIngredients,
+          likes,
+          spoonacular_id: id,
+        }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log("Recipe saved successfully", data);
+        loadSavedRecipes();
+      })
+      .catch(error => {
+        console.error("Error saving recipe:", error);
+      });
+    }
+
+    function loadSavedRecipes() {
+      const token = localStorage.getItem("token");
+
+      fetch("http://localhost:8000/recipes/saved_recipes", {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json",
+        },
+      })
+      .then(response => response.json())
+      .then(data => {
+        let savedRecipesContent = "";
+        data.forEach(recipe => {
+          savedRecipesContent += `
+            <div class="saved-recipe-item">
+              <img src="${recipe.image}" alt="${recipe.title}" width="50" />
+              <strong>${recipe.title}</strong>
+            </div>
+          `;
+        });
+        document.getElementById("savedRecipesList").innerHTML = savedRecipesContent;
+      })
+      .catch(error => {
+        console.error("Error loading saved recipes:", error);
+      });
+    }
+
+    // Navigate to the page that displays all saved recipes
+    document.getElementById("loadAllSavedRecipes").addEventListener("click", function() {
+      window.location.href = "saved_recipes.html"; // Replace with the actual page URL for all saved recipes
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saved Recipes</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <h1 class="logo">FooDie</h1>
+      <nav>
+        <ul>
+          <li><a href="intro.html">Home</a></li>
+          <!-- <li><a href="#">About Us</a></li> -->
+          <li><a href="bmi.html">BMI Calculator</a></li>
+          <li><a href="recipe.html">Recipes</a></li>
+          <!-- <li><a href="#">Contact Us</a></li> -->
+        </ul>
+      </nav>
+    </div>
+    <div class="container user-profile">
+      <img src="profile-icon.png" alt="Profile Icon" class="profile-icon">
+      <span class="profile-name" id="profileName"></span>
+      <button class="btn-logout" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- Saved Recipes Section -->
+  <div class="container">
+    <h2 class="section-title">Your Saved Recipes</h2>
+    <div class="saved-recipes-list" id="savedRecipesList"></div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) {
+      window.location.href = "login.html";
+    }
+
+    const name = localStorage.getItem("name") || "John Doe";
+    document.addEventListener("DOMContentLoaded", function () {
+      document.getElementById("profileName").textContent = name;
+      loadSavedRecipes();  // Load saved recipes when the page loads
+    });
+
+    function loadSavedRecipes() {
+  const token = localStorage.getItem("token");
+
+  fetch("http://localhost:8000/recipes/saved_recipes", {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Accept": "application/json",
+    },
+  })
+  .then(response => response.json())
+  .then(data => {
+    let savedRecipesContent = "";
+    if (data.length === 0) {
+      // If no saved recipes, display a message
+      savedRecipesContent = "<p>No saved recipes yet.</p>";
+    } else {
+            data.forEach(recipe => {
+            savedRecipesContent += `
+                <div class="accordion-item" id="recipe-${recipe.id}">
+                <button class="accordion-toggle" onclick="toggleAccordion(${recipe.id})">
+                    <img src="${recipe.image}" alt="${recipe.title}" width="50" />
+                    <strong>${recipe.title}</strong>
+                </button>
+                <div class="accordion-content" id="content-${recipe.id}">
+                    <p><strong>Likes:</strong> ${recipe.likes}</p>
+                    <p><strong>Used Ingredients:</strong> ${recipe.used_ingredients}</p>
+                    <p><strong>Missed Ingredients:</strong> ${recipe.missed_ingredients}</p>
+                    <button class="btn-danger" onclick="deleteRecipe(${recipe.id})">Delete Recipe</button>
+                </div>
+                </div>
+            `;
+            });
+        }
+    document.getElementById("savedRecipesList").innerHTML = savedRecipesContent;
+  })
+  .catch(error => {
+    console.error("Error loading saved recipes:", error);
+  });
+}
+
+function toggleAccordion(id) {
+  const content = document.getElementById(`content-${id}`);
+  content.style.display = (content.style.display === "none" || content.style.display === "") ? "block" : "none";
+}
+
+function deleteRecipe(id) {
+  const token = localStorage.getItem("token");
+
+  fetch(`http://localhost:8000/recipes/delete_recipe/${id}`, {
+    method: "DELETE",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Accept": "application/json",
+    },
+  })
+  .then(response => {
+    if (response.ok) {
+      // If the response is successful, remove the recipe from the DOM immediately
+      const recipeElement = document.getElementById(`recipe-${id}`);
+      if (recipeElement) {
+        recipeElement.remove();  // Remove recipe from UI
+      }
+    } else {
+      return response.json();  // If not ok, parse the error
+    }
+  })
+  .catch(error => {
+    console.error("Error deleting recipe:", error);
+  });
+}
+  </script>
+
+</body>
+</html>

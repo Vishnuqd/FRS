@@ -1,0 +1,103 @@
+[
+    {
+      "id": 1,
+      "name": "Protein-Packed Oatmeal",
+      "calories": 450,
+      "protein": 25,
+      "fat": 10,
+      "carbs": 60,
+      "description": "Oats with whey protein, nuts, and berries.",
+      "category": "gain_weight"
+    },
+    {
+      "id": 2,
+      "name": "Avocado Chicken Salad",
+      "calories": 380,
+      "protein": 30,
+      "fat": 20,
+      "carbs": 15,
+      "description": "Grilled chicken, avocado, lettuce, tomatoes.",
+      "category": "balanced"
+    },
+    {
+      "id": 3,
+      "name": "Veggie Stir-Fry with Tofu",
+      "calories": 320,
+      "protein": 22,
+      "fat": 12,
+      "carbs": 40,
+      "description": "Mixed vegetables with tofu in a light sauce.",
+      "category": "balanced"
+    },
+    {
+      "id": 4,
+      "name": "Salmon & Brown Rice Bowl",
+      "calories": 420,
+      "protein": 35,
+      "fat": 15,
+      "carbs": 40,
+      "description": "Salmon fillet over brown rice and steamed vegetables.",
+      "category": "balanced"
+    },
+    {
+      "id": 5,
+      "name": "High-Calorie Fruit Smoothie",
+      "calories": 650,
+      "protein": 12,
+      "fat": 20,
+      "carbs": 100,
+      "description": "Banana, peanut butter, whole milk, oats.",
+      "category": "gain_weight"
+    },
+    {
+      "id": 6,
+      "name": "Grilled Chicken & Veggies",
+      "calories": 280,
+      "protein": 30,
+      "fat": 8,
+      "carbs": 20,
+      "description": "Lean chicken breast with broccoli and peppers.",
+      "category": "lose_weight"
+    },
+    {
+      "id": 7,
+      "name": "Lentil Soup",
+      "calories": 250,
+      "protein": 18,
+      "fat": 4,
+      "carbs": 40,
+      "description": "Lentils, carrots, celery, onions in a broth.",
+      "category": "lose_weight"
+    },
+    {
+      "id": 8,
+      "name": "Spinach & Cottage Cheese Salad",
+      "calories": 220,
+      "protein": 14,
+      "fat": 8,
+      "carbs": 24,
+      "description": "Baby spinach, cottage cheese, cucumber, light dressing.",
+      "category": "low_cal"
+    },
+    {
+      "id": 9,
+      "name": "Steamed Vegetables & Chicken",
+      "calories": 200,
+      "protein": 25,
+      "fat": 3,
+      "carbs": 15,
+      "description": "Steamed broccoli, carrots, chicken breast.",
+      "category": "low_cal"
+    },
+    {
+      "id": 10,
+      "name": "Salad with Lean Turkey Strips",
+      "calories": 230,
+      "protein": 27,
+      "fat": 7,
+      "carbs": 10,
+      "description": "Mixed greens, turkey strips, light dressing.",
+      "category": "low_cal"
+    }
+  ]
+  

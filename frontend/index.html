@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Food Finder - Register</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('https://img.freepik.com/free-photo/assortment-different-types-bread_114579-7305.jpg');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .register-container {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+            width: 350px;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo h1 {
+            color: #2e7d32;
+            font-size: 24px;
+            margin: 0;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        .register-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #2e7d32;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .register-btn:hover {
+            background-color: #1b5e20;
+        }
+        .login-link {
+            text-align: center;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="logo">
+            <h1>Food Finder</h1>
+        </div>
+        <form id="registerForm">
+            <input 
+                type="text" 
+                id="fullName" 
+                placeholder="Full Name" 
+                required
+            >
+            <input 
+                type="email" 
+                id="email" 
+                placeholder="Email" 
+                required 
+                pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+                title="Please enter a valid email address"
+            >
+            <input 
+                type="password" 
+                id="password" 
+                placeholder="Password" 
+                required 
+                minlength="8"
+                pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
+                title="Must contain at least one number, one uppercase and lowercase letter, and be at least 8 characters long"
+            >
+            <input 
+                type="password" 
+                id="confirmPassword" 
+                placeholder="Confirm Password" 
+                required 
+                minlength="8"
+            >
+            <button type="submit" class="register-btn">Register</button>
+        </form>
+        <div class="login-link">
+            <a href="login.html" style="color: #2e7d32;">Already have an account? Login</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+        let user = localStorage.getItem("username");
+        let authSection = document.getElementById("auth-section");
+        let registerContainer = document.querySelector(".register-container");
+        
+        if (user) {
+            authSection.innerHTML = `Welcome, <strong>${user}</strong> | <a href="#" onclick="logout()">Logout</a>`;
+            
+            // If user is logged in, hide the register form
+            if (registerContainer) {
+                registerContainer.innerHTML = `<p>Welcome, <strong>${user}</strong>! You are already registered.</p>`;
+            }
+        } else {
+            authSection.innerHTML = '<a href="login.html">Login</a> | <a href="register.html">Register</a>';
+        }
+    });
+    
+    function logout() {
+        localStorage.removeItem("username");
+        window.location.href = "login.html";
+    }
+
+        document.getElementById("registerForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+        
+            const name = document.getElementById("fullName").value;
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+        
+            fetch("http://localhost:8000/auth/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: email, password: password, name:name})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.access_token) {
+                    localStorage.setItem("token", data.access_token);
+                    window.location.href = "login.html";
+                } else {
+                    alert("Registration failed.");
+                }
+            })
+            .catch(error => console.error("Registration error:", error));
+        });
+        </script>
+        
+</body>
+</html>
