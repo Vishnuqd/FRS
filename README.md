@@ -1,9 +1,3 @@
-Your `README.md` looks great but it can be improved by adding more details like dependencies, environment setup instructions, and how to run the frontend. Additionally, I'll provide the SQL file (`tables.sql`) with the required queries to create the necessary tables.
-
-Here's the updated `README.md`:
-
----
-
 # FooDie - Food Finder and BMI Calculator
 
 ## Description
