@@ -16,10 +16,9 @@
       <nav>
         <ul>
           <li><a href="intro.html">Home</a></li>
-          <!-- <li><a href="#">About Us</a></li> -->
           <li><a href="bmi.html">BMI Calculator</a></li>
           <li><a href="recipe.html">Recipes</a></li>
-          <!-- <li><a href="#">Contact Us</a></li> -->
+          <li><a href="saved_recipes.html">Feedback</a></li>
         </ul>
       </nav>
     </div>
@@ -69,7 +68,6 @@
       event.preventDefault();
       
       const ingredients = document.getElementById("ingredients").value;
-      const token = localStorage.getItem("token");
 
       fetch(`http://localhost:8000/recipes/by_ingredients?ingredients=${encodeURIComponent(ingredients)}`, {
         method: 'GET',
@@ -86,14 +84,16 @@
             let usedIngredients = recipe.usedIngredients.map(i => `${i.amount} ${i.unit} ${i.name}`).join(', ');
             let missedIngredients = recipe.missedIngredients.map(i => `${i.amount} ${i.unit} ${i.name}`).join(', ');
 
+            const rating = convertLikesToRating(recipe.likes); // Convert likes to rating (0-5)
+
             recipeContent += `
               <div class="recipe-card" data-recipe-id="${recipe.id}">
                 <img src="${recipe.image}" alt="${recipe.title}">
                 <h3>${recipe.title}</h3>
                 <p><strong>Used Ingredients:</strong> ${usedIngredients}</p>
                 <p><strong>Missing Ingredients:</strong> ${missedIngredients}</p>
-                <p><strong>Likes:</strong> ${recipe.likes}</p>
-                <button class="btn-primary" onclick="saveRecipe(${recipe.id}, '${recipe.title}', '${recipe.image}', '${usedIngredients}', '${missedIngredients}', ${recipe.likes})">Save Recipe</button>
+                <p><strong>Rating:</strong> ${renderStars(rating)}</p>
+                <button class="btn-primary" onclick="saveRecipe(${recipe.id}, '${escapeQuotes(recipe.title)}', '${recipe.image}', '${escapeQuotes(usedIngredients)}', '${escapeQuotes(missedIngredients)}', ${rating})">Save Recipe</button>
               </div>
             `;
           });
@@ -109,9 +109,7 @@
       });
     });
 
-    function saveRecipe(id, title, image, usedIngredients, missedIngredients, likes) {
-      const token = localStorage.getItem("token");
-
+    function saveRecipe(id, title, image, usedIngredients, missedIngredients, rating) {
       fetch("http://localhost:8000/recipes/save_recipe", {
         method: "POST",
         headers: {
@@ -123,11 +121,16 @@
           image,
           used_ingredients: usedIngredients,
           missed_ingredients: missedIngredients,
-          likes,
-          spoonacular_id: id,
+          rating,
+          spoonacular_id: id
         }),
       })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Failed to save recipe");
+        }
+        return response.json();
+      })
       .then(data => {
         console.log("Recipe saved successfully", data);
         loadSavedRecipes();
@@ -138,8 +141,6 @@
     }
 
     function loadSavedRecipes() {
-      const token = localStorage.getItem("token");
-
       fetch("http://localhost:8000/recipes/saved_recipes", {
         method: "GET",
         headers: {
@@ -165,10 +166,36 @@
       });
     }
 
+    function convertLikesToRating(likes) {
+      const maxLikes = 10; // You can tweak this threshold based on real data
+      let normalized = (likes / maxLikes) * 5;
+      let rounded = Math.round(normalized);
+      return Math.max(1, Math.min(rounded, 5)); // Ensure rating is between 1 and 5
+    }
+
+
+    function renderStars(rating) {
+      let stars = "";
+      for (let i = 1; i <= 5; i++) {
+        stars += i <= rating ? "★" : "☆";
+      }
+      return stars;
+    }
+
+    function escapeQuotes(str) {
+      return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+
     // Navigate to the page that displays all saved recipes
     document.getElementById("loadAllSavedRecipes").addEventListener("click", function() {
-      window.location.href = "saved_recipes.html"; // Replace with the actual page URL for all saved recipes
+      window.location.href = "saved_recipes.html";
     });
+
+    function logout() {
+      localStorage.removeItem("token");
+      localStorage.removeItem("name");
+      window.location.href = "login.html";
+    }
   </script>
 
 </body>

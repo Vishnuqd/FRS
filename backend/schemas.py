@@ -26,16 +26,18 @@ class SavedRecipeBase(BaseModel):
     image: str
     used_ingredients: str
     missed_ingredients: str
-    likes: int
+    rating: int  # new name instead of likes
     spoonacular_id: int
+    feedback: Optional[str] = None
 
 class SavedRecipeCreate(BaseModel):
     title: str
     image: str
     used_ingredients: Optional[str] = None  # Allow it to be None
     missed_ingredients: Optional[str] = None  # Allow it to be None
-    likes: Optional[int] = 0  # Default to 0 if likes are not provided
+    rating: int  # new name instead of likes
     spoonacular_id: int
+    feedback: Optional[str] = None
 
 
 class SavedRecipe(SavedRecipeBase):
@@ -43,3 +45,11 @@ class SavedRecipe(SavedRecipeBase):
 
     class Config:
         orm_mode = True
+
+# New schema for updating feedback
+class UpdateFeedback(BaseModel):
+    feedback: str
+
+# (Optional) New schema for updating rating
+class UpdateRating(BaseModel):
+    rating: int

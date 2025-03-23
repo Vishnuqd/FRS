@@ -113,7 +113,8 @@ def save_recipe(recipe: schemas.SavedRecipeCreate, db: Session = Depends(get_db)
         image=recipe.image,
         used_ingredients=recipe.used_ingredients,
         missed_ingredients=recipe.missed_ingredients,
-        likes=recipe.likes,
+        rating=recipe.rating,    # Now storing rating, not likes
+        feedback=recipe.feedback, # Optionally store initial feedback
         spoonacular_id=recipe.spoonacular_id,
         user_id=user_id
     )
@@ -123,7 +124,10 @@ def save_recipe(recipe: schemas.SavedRecipeCreate, db: Session = Depends(get_db)
     return db_recipe
 
 @router.get("/saved_recipes", response_model=List[schemas.SavedRecipe])
-def get_saved_recipes(db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+def get_saved_recipes(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     user_id = current_user.get("user_id") if isinstance(current_user, dict) else current_user.id
     saved_recipes = db.query(models.SavedRecipe).filter(models.SavedRecipe.user_id == user_id).all()
     return saved_recipes
@@ -146,3 +150,27 @@ def delete_recipe(id: int, db: Session = Depends(get_db), current_user: dict = D
     db.delete(db_recipe)
     db.commit()
     return {"message": "Recipe deleted successfully"}
+
+@router.put("/update_feedback/{recipe_id}", response_model=schemas.SavedRecipe)
+def update_feedback(recipe_id: int, update: schemas.UpdateFeedback, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    user_id = current_user.get("user_id") if isinstance(current_user, dict) else current_user.id
+    recipe = db.query(models.SavedRecipe).filter(models.SavedRecipe.id == recipe_id, models.SavedRecipe.user_id == user_id).first()
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+    recipe.feedback = update.feedback
+    db.commit()
+    db.refresh(recipe)
+    return recipe
+
+
+# Optional: Endpoint to update rating via star clicks
+@router.put("/update_rating/{recipe_id}", response_model=schemas.SavedRecipe)
+def update_rating(recipe_id: int, update: schemas.UpdateRating, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    user_id = current_user.get("user_id") if isinstance(current_user, dict) else current_user.id
+    recipe = db.query(models.SavedRecipe).filter(models.SavedRecipe.id == recipe_id, models.SavedRecipe.user_id == user_id).first()
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+    recipe.rating = update.rating
+    db.commit()
+    db.refresh(recipe)
+    return recipe

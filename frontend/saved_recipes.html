@@ -15,10 +15,9 @@
       <nav>
         <ul>
           <li><a href="intro.html">Home</a></li>
-          <!-- <li><a href="#">About Us</a></li> -->
           <li><a href="bmi.html">BMI Calculator</a></li>
           <li><a href="recipe.html">Recipes</a></li>
-          <!-- <li><a href="#">Contact Us</a></li> -->
+          <li><a href="saved_recipes.html">Feedback</a></li>
         </ul>
       </nav>
     </div>
@@ -44,80 +43,183 @@
     const name = localStorage.getItem("name") || "John Doe";
     document.addEventListener("DOMContentLoaded", function () {
       document.getElementById("profileName").textContent = name;
-      loadSavedRecipes();  // Load saved recipes when the page loads
+      loadSavedRecipes();
     });
 
+    // 1) Load saved recipes from backend
     function loadSavedRecipes() {
-  const token = localStorage.getItem("token");
-
-  fetch("http://localhost:8000/recipes/saved_recipes", {
-    method: "GET",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      "Accept": "application/json",
-    },
-  })
-  .then(response => response.json())
-  .then(data => {
-    let savedRecipesContent = "";
-    if (data.length === 0) {
-      // If no saved recipes, display a message
-      savedRecipesContent = "<p>No saved recipes yet.</p>";
-    } else {
-            data.forEach(recipe => {
+      fetch("http://localhost:8000/recipes/saved_recipes", {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json",
+        },
+      })
+      .then(response => response.json())
+      .then(data => {
+        let savedRecipesContent = "";
+        if (data.length === 0) {
+          savedRecipesContent = "<p>No saved recipes yet.</p>";
+        } else {
+          data.forEach(recipe => {
             savedRecipesContent += `
-                <div class="accordion-item" id="recipe-${recipe.id}">
+              <div class="accordion-item" id="recipe-${recipe.id}">
                 <button class="accordion-toggle" onclick="toggleAccordion(${recipe.id})">
-                    <img src="${recipe.image}" alt="${recipe.title}" width="50" />
-                    <strong>${recipe.title}</strong>
+                  <img src="${recipe.image}" alt="${recipe.title}" width="50" />
+                  <strong>${recipe.title}</strong>
                 </button>
-                <div class="accordion-content" id="content-${recipe.id}">
-                    <p><strong>Likes:</strong> ${recipe.likes}</p>
-                    <p><strong>Used Ingredients:</strong> ${recipe.used_ingredients}</p>
-                    <p><strong>Missed Ingredients:</strong> ${recipe.missed_ingredients}</p>
-                    <button class="btn-danger" onclick="deleteRecipe(${recipe.id})">Delete Recipe</button>
+                <div class="accordion-content" id="content-${recipe.id}" style="display: none;">
+                  
+                  <!-- RATING STARS -->
+                  <p><strong>Rating:</strong>
+                    <span class="stars" id="stars-${recipe.id}">
+                      ${renderRatingStars(recipe.id, recipe.rating)}
+                    </span>
+                  </p>
+                  
+                  <!-- FEEDBACK SECTION -->
+                  <p><strong>Feedback:</strong>
+                    <span id="feedback-display-${recipe.id}">
+                      ${recipe.feedback ? recipe.feedback : "No feedback yet"}
+                    </span>
+                  </p>
+                  <textarea id="feedback-input-${recipe.id}" placeholder="Add or update your feedback..."></textarea>
+                  <button onclick="updateFeedback(${recipe.id})">Submit Feedback</button>
+                  
+                  <!-- INGREDIENT INFO -->
+                  <p><strong>Used Ingredients:</strong> ${recipe.used_ingredients}</p>
+                  <p><strong>Missed Ingredients:</strong> ${recipe.missed_ingredients}</p>
+                  
+                  <!-- DELETE BUTTON -->
+                  <button class="btn-danger" onclick="deleteRecipe(${recipe.id})">Delete Recipe</button>
                 </div>
-                </div>
+              </div>
             `;
-            });
+          });
         }
-    document.getElementById("savedRecipesList").innerHTML = savedRecipesContent;
-  })
-  .catch(error => {
-    console.error("Error loading saved recipes:", error);
-  });
-}
+        document.getElementById("savedRecipesList").innerHTML = savedRecipesContent;
+      })
+      .catch(error => {
+        console.error("Error loading saved recipes:", error);
+      });
+    }
 
-function toggleAccordion(id) {
-  const content = document.getElementById(`content-${id}`);
-  content.style.display = (content.style.display === "none" || content.style.display === "") ? "block" : "none";
-}
+    // 2) Render star rating (filled or empty) and make them clickable
+    function renderRatingStars(recipeId, rating) {
+      // rating: integer 0-5
+      let starHtml = "";
+      for (let i = 1; i <= 5; i++) {
+        starHtml += `<span style="cursor: pointer; font-size: 1.2rem;" onclick="setRating(${recipeId}, ${i})">`;
+        if (i <= rating) {
+          starHtml += "★"; // filled star
+        } else {
+          starHtml += "☆"; // empty star
+        }
+        starHtml += `</span>`;
+      }
+      return starHtml;
+    }
 
-function deleteRecipe(id) {
-  const token = localStorage.getItem("token");
+    // 3) Toggle accordion content on click
+    function toggleAccordion(id) {
+      const content = document.getElementById(`content-${id}`);
+      content.style.display = (content.style.display === "none" || !content.style.display) ? "block" : "none";
+    }
 
-  fetch(`http://localhost:8000/recipes/delete_recipe/${id}`, {
-    method: "DELETE",
+    // 4) Delete recipe
+    function deleteRecipe(id) {
+      fetch(`http://localhost:8000/recipes/delete_recipe/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json",
+        },
+      })
+      .then(response => {
+        if (response.ok) {
+          const recipeElement = document.getElementById(`recipe-${id}`);
+          if (recipeElement) {
+            recipeElement.remove();
+          }
+        } else {
+          return response.json();
+        }
+      })
+      .catch(error => {
+        console.error("Error deleting recipe:", error);
+      });
+    }
+
+    // 5) Set (update) rating when a star is clicked
+    function setRating(recipeId, ratingValue) {
+      fetch(`http://localhost:8000/recipes/update_rating/${recipeId}`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ rating: ratingValue })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Failed to update rating");
+        }
+        return response.json();
+      })
+      .then(updatedRecipe => {
+        // Re-render the stars with updated rating
+        const starsContainer = document.getElementById(`stars-${recipeId}`);
+        starsContainer.innerHTML = renderRatingStars(recipeId, updatedRecipe.rating);
+      })
+      .catch(error => {
+        console.error("Error updating rating:", error);
+      });
+    }
+
+  function updateFeedback(recipeId) {
+  const textarea = document.getElementById(`feedback-input-${recipeId}`);
+  if (!textarea) {
+    console.error("Textarea not found for recipe ID:", recipeId);
+    return;
+  }
+
+  const feedbackText = textarea.value.trim();
+  if (!feedbackText) {
+    alert("Please enter some feedback before submitting.");
+    return;
+  }
+
+  fetch(`http://localhost:8000/recipes/update_feedback/${recipeId}`, {
+    method: "PUT",
     headers: {
       "Authorization": `Bearer ${token}`,
-      "Accept": "application/json",
+      "Content-Type": "application/json"
     },
+    body: JSON.stringify({ feedback: feedbackText })
   })
   .then(response => {
-    if (response.ok) {
-      // If the response is successful, remove the recipe from the DOM immediately
-      const recipeElement = document.getElementById(`recipe-${id}`);
-      if (recipeElement) {
-        recipeElement.remove();  // Remove recipe from UI
-      }
-    } else {
-      return response.json();  // If not ok, parse the error
+    if (!response.ok) {
+      throw new Error("Failed to update feedback");
     }
+    return response.json();
+  })
+  .then(updatedRecipe => {
+    // Show updated feedback
+    const feedbackElem = document.getElementById(`feedback-display-${recipeId}`);
+    if (feedbackElem) feedbackElem.textContent = updatedRecipe.feedback;
+    textarea.value = ""; // Clear input
   })
   .catch(error => {
-    console.error("Error deleting recipe:", error);
+    console.error("Error updating feedback:", error);
   });
 }
+
+    // Example logout function
+    function logout() {
+      localStorage.removeItem("token");
+      localStorage.removeItem("name");
+      window.location.href = "login.html";
+    }
   </script>
 
 </body>

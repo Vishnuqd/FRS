@@ -31,7 +31,9 @@ class SavedRecipe(Base):
     image = Column(String)
     used_ingredients = Column(Text)
     missed_ingredients = Column(Text)
-    likes = Column(Integer)
+    rating = Column(Integer, default=0)  # <--- Replaces `likes`
+    feedback = Column(Text)              # <--- If you added feedback
+    spoonacular_id = Column(Integer, unique=True, index=True)
     spoonacular_id = Column(Integer, unique=True, index=True)  # The Spoonacular recipe ID
     
     user_id = Column(Integer, ForeignKey("users.id"))
