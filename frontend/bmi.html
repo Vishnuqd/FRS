@@ -8,42 +8,39 @@
     <link rel="stylesheet" href="styles.css">
     <style>
         /* BMI Form Styling */
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
 
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+        }
 
-input, select {
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    box-sizing: border-box;
-}
+        button:hover {
+            background-color: #45a049;
+        }
 
-button {
-    width: 100%;
-    padding: 10px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 16px;
-}
+        .result {
+            margin-top: 20px;
+            font-size: 18px;
+        }
 
-button:hover {
-    background-color: #45a049;
-}
-
-.result {
-    margin-top: 20px;
-    font-size: 18px;
-}
-
-label {
-    font-size: 16px;
-    font-weight: bold;
-    color: #333;
-}
-
+        label {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -55,10 +52,8 @@ label {
       <nav>
         <ul>
           <li><a href="intro.html">Home</a></li>
-          <!-- <li><a href="#">About Us</a></li> -->
           <li><a href="bmi.html">BMI Calculator</a></li>
           <li><a href="recipe.html">Recipes</a></li>
-          <!-- <li><a href="#">Contact Us</a></li> -->
         </ul>
       </nav>
     </div>
@@ -67,7 +62,7 @@ label {
       <span class="profile-name" id="profileName"></span>
       <button class="btn-logout" style="width: auto;" onclick="logout()">Logout</button>
     </div>
-  </header>
+</header>
 
 <!-- BMI Calculator Form -->
 <div class="container">
@@ -101,30 +96,29 @@ label {
 
     <!-- Nutrition Chart -->
     <canvas id="nutritionChart" width="400" height="200"></canvas>
-
-   
 </div>
 
 <script>
-
 const token = localStorage.getItem("token");
-    if (!token) {
-      window.location.href = "login.html";
-    }
+if (!token) {
+  window.location.href = "login.html";
+}
 
-    const name = localStorage.getItem("name") || "John Doe";
-    document.getElementById("name").value = name;
+const name = localStorage.getItem("name") || "John Doe";
+document.getElementById("name").value = name;
 
-    // Fetch the last BMI of the user from the database and display it
-    fetchLastBMI();
-    document.addEventListener("DOMContentLoaded", function () {
-      document.getElementById("profileName").textContent = name;
-      loadSavedRecipes(); // Load saved recipes on page load
-    });
-    document.getElementById("bmiForm").addEventListener("submit", function(event) {
-        event.preventDefault();
+// Fetch the last BMI of the user from the database and display it
+fetchLastBMI();
 
-        // Get input values
+document.addEventListener("DOMContentLoaded", function () {
+  document.getElementById("profileName").textContent = name;
+  loadSavedRecipes(); // Load saved recipes on page load
+});
+
+document.getElementById("bmiForm").addEventListener("submit", function(event) {
+    event.preventDefault();
+
+    // Get input values
     const name = document.getElementById("name").value;
     const height = parseFloat(document.getElementById("height").value);
     const weight = parseFloat(document.getElementById("weight").value);
@@ -152,19 +146,20 @@ const token = localStorage.getItem("token");
             // Display BMI and Category
             document.getElementById("result").innerHTML = `${name}, your BMI is ${bmi} (${category})`;
 
-        // Fetch recipes based on BMI category
-        fetchRecipesByBMI(category);
+            // Fetch recipes based on BMI category
+            fetchRecipesByBMI(category);
 
-        displayDietAdvice(category);
-    }
+            displayDietAdvice(category);
+        }
     })
     .catch(error => {
         console.error("Error fetching BMI data:", error);
         document.getElementById("result").innerHTML = "An error occurred while calculating your BMI.";
     });
-    });
+});
 
-    function fetchRecipesByBMI(bmiCategory) {
+// Function to fetch recipes by BMI category
+function fetchRecipesByBMI(bmiCategory) {
     const token = localStorage.getItem("token");
     document.getElementById("loader").style.display = "block";
 
@@ -183,14 +178,16 @@ const token = localStorage.getItem("token");
 
         if (Array.isArray(data.recipes)) {
             data.recipes.forEach(recipe => {
+                const rating = convertLikesToRating(recipe.likes); // Convert likes to rating (0-5)
+
                 // Render recipe cards
                 recipesContent += `
                     <div class="recipe-card" id="recipe-${recipe.id}">
                         <img src="${recipe.image}" alt="${recipe.title}">
                         <h3>${recipe.title}</h3>
-                        <p><strong>Likes:</strong> ${recipe.likes}</p>
+                        <p><strong>Rating:</strong> ${renderStars(rating)}</p>
                         <button onclick="showNutritionChart(${recipe.id})">See Nutrition Chart</button>
-                        <button onclick="saveRecipe(${recipe.id}, '${recipe.title}', '${recipe.image}', '${recipe.used_ingredients}', '${recipe.missed_ingredients}', ${recipe.likes})">Save Recipe</button>
+                        <button onclick="saveRecipe(${recipe.id}, '${recipe.title}', '${recipe.image}', '${recipe.used_ingredients}', '${recipe.missed_ingredients}', ${rating})">Save Recipe</button>
                          <!-- Canvas for displaying the nutrition chart -->
                         <canvas id="nutritionChart-${recipe.id}" width="400" height="200" style="display:none;"></canvas>
                     </div>
@@ -207,6 +204,23 @@ const token = localStorage.getItem("token");
         console.error("Error fetching recipes:", error);
         document.getElementById("recipes").innerHTML = "<p>Error fetching recipes.</p>";
     });
+}
+
+// Convert likes to ratings (1-5)
+function convertLikesToRating(likes) {
+      const maxLikes = 10; // You can tweak this threshold based on real data
+      let normalized = (likes / maxLikes) * 5;
+      let rounded = Math.round(normalized);
+      return Math.max(1, Math.min(rounded, 5)); // Ensure rating is between 1 and 5
+    }
+
+// Render rating as stars (★ or ☆)
+function renderStars(rating) {
+    let stars = "";
+    for (let i = 1; i <= 5; i++) {
+        stars += i <= rating ? "★" : "☆";
+    }
+    return stars;
 }
 
 // Fetch and display the nutrition chart for a specific recipe
@@ -304,15 +318,14 @@ function displayDietAdvice(bmiCategory) {
     document.getElementById("dietAdvice").innerHTML = `<p><strong>Dietary Advice:</strong> ${advice}</p>`;
 }
 
-
-function saveRecipe(id, title, image, usedIngredients, missedIngredients, likes) {
+function saveRecipe(id, title, image, usedIngredients, missedIngredients, rating) {
     const token = localStorage.getItem("token");
     document.getElementById("loader").style.display = "block";
 
     // Ensure likes, used_ingredients, and missed_ingredients are set, even if undefined
     usedIngredients = usedIngredients || "Not available";  // Default value if undefined
     missedIngredients = missedIngredients || "Not available";  // Default value if undefined
-    likes = likes || 0;  // Default to 0 if likes are not available
+    rating = rating || 0;  // Default to 0 if likes are not available
 
     fetch("http://localhost:8000/recipes/save_recipe", {
         method: "POST",
@@ -325,7 +338,7 @@ function saveRecipe(id, title, image, usedIngredients, missedIngredients, likes)
             image: image,
             used_ingredients: usedIngredients,
             missed_ingredients: missedIngredients,
-            likes: likes,
+            rating: rating,  // Send rating here
             spoonacular_id: id,  // Store the recipe's ID
         }),
     })
@@ -338,31 +351,31 @@ function saveRecipe(id, title, image, usedIngredients, missedIngredients, likes)
         console.error("Error saving recipe:", error);
     });
 }
+
 function fetchLastBMI() {
-        const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-        fetch('http://localhost:8000/bmi/last_bmi', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Accept': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.bmi) {
-                // Display the last BMI result
-                document.getElementById("lastBMI").innerHTML = `Last BMI: ${data.bmi} (${data.category})`;
-            } else {
-                document.getElementById("lastBMI").innerHTML = "No previous BMI recorded.";
-            }
-        })
-        .catch(error => {
-            console.error("Error fetching last BMI:", error);
-            document.getElementById("lastBMI").innerHTML = "Error fetching last BMI.";
-        });
-    }
-
+    fetch('http://localhost:8000/bmi/last_bmi', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.bmi) {
+            // Display the last BMI result
+            document.getElementById("lastBMI").innerHTML = `Last BMI: ${data.bmi} (${data.category})`;
+        } else {
+            document.getElementById("lastBMI").innerHTML = "No previous BMI recorded.";
+        }
+    })
+    .catch(error => {
+        console.error("Error fetching last BMI:", error);
+        document.getElementById("lastBMI").innerHTML = "Error fetching last BMI.";
+    });
+}
 </script>
 
 </body>
